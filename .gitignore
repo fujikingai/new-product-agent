@@ -1,0 +1,11 @@
+.env
+node_modules/
+dist/
+reports/daily-report.md
+
+# macOS
+.DS_Store
+
+# Generated outputs
+outputs/
+reports/

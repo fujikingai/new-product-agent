@@ -1,0 +1,25 @@
+{
+  "name": "new-product-agent",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "generate": "tsx src/index.ts",
+    "generate:editor": "tsx src/agents/runEditorOnly.ts",
+    "send:report": "tsx src/sendReport.ts",
+    "save:sheet": "tsx src/saveReportToSheet.ts",
+    "run:report": "tsx src/runReportWorkflow.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "dotenv": "^16.4.5",
+    "googleapis": "^171.4.0",
+    "nodemailer": "^8.0.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/nodemailer": "^8.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}
