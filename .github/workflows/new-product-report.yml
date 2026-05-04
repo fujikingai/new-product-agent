@@ -1,9 +1,9 @@
 name: New Product Report
 
 on:
-  # UTC 日曜・水曜 20:00 = JST 月曜・木曜 05:00
+  # UTC 火曜・金曜 00:00 = JST 火曜・金曜 09:00
   schedule:
-    - cron: "0 20 * * 0,3"
+    - cron: "0 0 * * 2,5"
   # 手動実行も可能
   workflow_dispatch:
 
