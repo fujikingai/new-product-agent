@@ -200,7 +200,7 @@ new-product-agent/
 
 ## レポート運用方針
 
-- 毎週 **月曜・木曜の朝8時** に実行予定
+- 毎週 **月曜・木曜の朝5時** に実行予定
 - 生成結果は **Google スプレッドシート** に自動保存（メイン運用）
   - **Ideas シート**：13案サマリー（11列）を蓄積
   - **IdeaDetails シート**：全13案の詳細情報（33列）を蓄積
@@ -300,12 +300,12 @@ Teaflex 上位3案・漢方ブランド上位2案・自由枠上位2案 = 計7�
 
 ## GitHub Actions 自動実行
 
-`.github/workflows/new-product-report.yml` で **毎週月曜・木曜の朝8時（JST）** に自動実行されます。
+`.github/workflows/new-product-report.yml` で **毎週月曜・木曜の朝5時（JST）** に自動実行されます。
 
 ```yaml
 on:
   schedule:
-    - cron: "0 23 * * 0,3"  # UTC 日曜・水曜 23:00 = JST 月曜・木曜 08:00
+    - cron: "0 20 * * 0,3"  # UTC 日曜・水曜 20:00 = JST 月曜・木曜 05:00
   workflow_dispatch:           # 手動実行も可能
 ```
 
