@@ -84,14 +84,27 @@ function repairUnescapedQuotes(jsonStr: string): string {
  * Claude の出力から最初の ```json ブロックを抽出してパースする。
  * 出力形式: ```json{...}``` → Markdown詳細
  * 値内の未エスケープ " を自動修復してから JSON.parse する。
+ *
+ * フォールバック: maxTokens 超過でブロックが閉じられていない場合（```json...EOF）も、
+ * 閉じタグなしのブロックを抽出してパースを試みる。
  */
 export function parseJsonFromMarkdown<T>(raw: string, agentName: string): T {
+  // 通常パス: 閉じた ```json...``` ブロックを探す
   const matches = [...raw.matchAll(/```json\s*([\s\S]*?)```/g)];
-  if (matches.length === 0) {
+
+  // フォールバック: 閉じタグがない場合（出力が途中で切れた場合）も試みる
+  const jsonStr: string = (() => {
+    if (matches.length > 0) {
+      return matches[0][1].trim();
+    }
+    // 閉じタグなしフォールバック: ```json 以降を末尾まで取得
+    const openMatch = raw.match(/```json\s*([\s\S]+)/);
+    if (openMatch) {
+      console.warn(`[${agentName}] JSONブロックの閉じタグが見つかりません（出力が途中で切れた可能性）。フォールバックでパースを試みます。`);
+      return openMatch[1].trim();
+    }
     throw new Error(`[${agentName}] JSONブロックが見つかりませんでした:\n${raw.slice(0, 300)}`);
-  }
-  // JSON-first 形式（先頭優先）
-  const jsonStr = matches[0][1].trim();
+  })();
 
   // まずそのままパース、失敗したら自動修復して再試行
   try {

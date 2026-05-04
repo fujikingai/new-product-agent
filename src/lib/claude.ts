@@ -24,16 +24,15 @@ export async function callClaude(options: CallOptions): Promise<string> {
     maxTokens = 4096,
   } = options;
 
-  const response = await getClient().messages.create({
-    model,
-    max_tokens: maxTokens,
-    system: systemPrompt,
-    messages: [{ role: "user", content: userMessage }],
-  });
+  // streaming を使うことで、長時間生成（product-planner など）の10分タイムアウトを回避する
+  const text = await getClient().messages
+    .stream({
+      model,
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userMessage }],
+    })
+    .finalText();
 
-  const block = response.content[0];
-  if (block.type !== "text") {
-    throw new Error("Unexpected response type from Claude API");
-  }
-  return block.text;
+  return text;
 }

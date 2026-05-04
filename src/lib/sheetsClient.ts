@@ -55,6 +55,12 @@ const IDEADETAILS_HEADER = [
   // 追加列（重複回避用）col 31-32
   "悩みカテゴリ",
   "商品カテゴリ",
+  // 追加列（商品仕様に根ざした差別化評価）col 33-37
+  "視覚的に見せられる変化",
+  "ビフォーアフター可能性",
+  "大手を避ける勝ち筋",
+  "新しい買う理由",
+  "コモディティ化回避の切り口",
 ];
 
 // BrandSummary シートのヘッダー（枠別最有力案）
@@ -352,10 +358,11 @@ export async function saveIdeasToSheet(runDate: string): Promise<void> {
 }
 
 /**
- * IdeaDetails シートに全案の詳細を追記する（29列）。
+ * IdeaDetails シートに全案の詳細を追記する（38列）。
  * データソース: outputs/04（ProductIdea JSON）+ outputs/05（EvaluationScore JSON）
  * 商品概要・キャッチコピーは MDテーブル → JSON フォールバック
- * 次に確認すべきこと はベスト3 MDセクション → それ以外は空文字
+ * col 18-21（初回検証方法・SNS広告フック・LPファーストビュー・次に確認すべきこと）は廃止のため空文字
+ * col 33-37 は商品仕様に根ざした差別化評価の新列
  */
 export async function saveIdeaDetailsToSheet(runDate: string): Promise<void> {
   type ScoreResult = { index: number } & EvaluationScore;
@@ -407,10 +414,10 @@ export async function saveIdeaDetailsToSheet(runDate: string): Promise<void> {
       buildFunctionalPotential(idea),   // 機能性表示食品としての可能性
       idea.regulatoryRisk,
       idea.risks,                       // 失敗する可能性
-      idea.validationMethod,
-      idea.snsAdHook,
-      idea.lpFirstView,
-      mdExtra?.nextSteps ?? "",         // 次に確認すべきこと（ベスト3のみ、他は空）
+      "",                               // col 18: 初回検証方法（廃止 — 空文字で保持）
+      "",                               // col 19: SNS広告フック（廃止 — 空文字で保持）
+      "",                               // col 20: LPファーストビュー案（廃止 — 空文字で保持）
+      "",                               // col 21: 次に確認すべきこと（廃止 — 空文字で保持）
       // 追加7列
       brandTrackLabel(idea.brandTrack),         // 枠
       idea.lineType,                             // lineType
@@ -423,6 +430,12 @@ export async function saveIdeaDetailsToSheet(runDate: string): Promise<void> {
       idea.relatedPastIdea || "",               // 関連する過去案
       idea.worryCategory || "",                 // 悩みカテゴリ（col 31）
       idea.productCategory || "",               // 商品カテゴリ（col 32）
+      // 商品仕様に根ざした差別化評価 col 33-37
+      idea.visualProof || "",
+      idea.beforeAfterPotential || "",
+      idea.avoidBigBrandWarStrategy || "",
+      idea.newBuyingReason || "",
+      idea.commodityAvoidanceAngle || "",
     ];
   });
 

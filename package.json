@@ -5,9 +5,11 @@
   "scripts": {
     "generate": "tsx src/index.ts",
     "generate:editor": "tsx src/agents/runEditorOnly.ts",
+    "generate:from4": "tsx src/runFrom4Workflow.ts",
     "send:report": "tsx src/sendReport.ts",
     "save:sheet": "tsx src/saveReportToSheet.ts",
     "run:report": "tsx src/runReportWorkflow.ts",
+    "run:from4": "tsx src/runFrom4Workflow.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

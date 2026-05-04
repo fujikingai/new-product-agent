@@ -66,8 +66,6 @@ export interface ProductIdea {
   mallStrategy: string;          // Amazon/楽天での売り方
   wholesaleOpportunity: string;  // 卸での展開可能性
   salesChannels: string[];
-  snsAdHook: string;             // SNS広告フック
-  lpFirstView: string;           // LPファーストビュー案
   storeCopy: string;             // 店頭POPコピー案
   packageExperience: string;     // 容器・形状・使用体験の特徴
   repeatReason: string;          // リピート購入理由
@@ -76,12 +74,21 @@ export interface ProductIdea {
   existingProductConflict: string; // 既存商品との被り・カニバリ可能性
   seriesExpansion: string;       // シリーズ化・横展開の余地
   wholesaleFit: string;          // 卸展開との相性
-  validationMethod: string;
   regulatoryRisk: string;        // 法規制・表示リスク
   regulatoryExpressionRisk: string; // 薬機法・景表法・食品表示上の表現リスク詳細
   risks: string;
   noveltyComparedToPast: string; // 過去提案と比べて何が新しいか
   relatedPastIdea: string;       // 似ている過去案の商品名（なければ空文字）
+  // 商品仕様に根ざした差別化評価軸（新規追加）
+  visualProof?: string;              // 広告・LPで見せられる変化・使用シーン（仕様から自然に生まれるもの）
+  beforeAfterPotential?: string;     // ビフォーアフター・変化訴求の可能性
+  avoidBigBrandWarStrategy?: string; // 商品仕様上の大手回避戦略
+  newBuyingReason?: string;          // 既存品ではなくこれを買う理由（仕様に根ざしたもの）
+  commodityAvoidanceAngle?: string;  // コモディティ化を避ける商品設計上の切り口
+  // 廃止フィールド（後方互換のためoptionalで残す。Claude出力JSONには含めない）
+  validationMethod?: string;
+  snsAdHook?: string;
+  lpFirstView?: string;
 }
 
 export interface EvaluationScore {

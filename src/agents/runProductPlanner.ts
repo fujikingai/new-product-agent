@@ -57,7 +57,7 @@ ${trendResearch}
 1. まず JSON配列ブロックを出力する（これが最優先）
 2. その後に各商品案の詳細をMarkdownで出力する
 
-JSONの各フィールドは必ず簡潔に記述すること（目安: name≤25字, concept≤40字, worryTarget≤20字, worryCategory≤15字, productCategory≤15字, targetCustomer≤40字, price≤20字, functionalIngredients≤40字, functionalClaims≤40字, d2cStrategy≤60字, mallStrategy≤60字, wholesaleOpportunity≤40字, snsAdHook≤50字, lpFirstView≤40字, storeCopy≤16字, packageExperience≤60字, repeatReason≤40字, differentiation≤60字, brandFitReason≤60字, existingProductConflict≤60字, seriesExpansion≤40字, wholesaleFit≤40字, validationMethod≤60字, regulatoryRisk≤60字, regulatoryExpressionRisk≤60字, risks≤60字, noveltyComparedToPast≤60字, relatedPastIdea≤30字）。詳細はMarkdownセクションに書くこと。
+JSONの各フィールドは必ず簡潔に記述すること（目安: name≤25字, concept≤40字, worryTarget≤20字, worryCategory≤15字, productCategory≤15字, targetCustomer≤40字, price≤20字, functionalIngredients≤40字, functionalClaims≤40字, d2cStrategy≤60字, mallStrategy≤60字, wholesaleOpportunity≤40字, storeCopy≤16字, packageExperience≤60字, repeatReason≤40字, differentiation≤60字, brandFitReason≤60字, existingProductConflict≤60字, seriesExpansion≤40字, wholesaleFit≤40字, regulatoryRisk≤60字, regulatoryExpressionRisk≤60字, risks≤60字, noveltyComparedToPast≤60字, relatedPastIdea≤30字, visualProof≤60字, beforeAfterPotential≤40字, avoidBigBrandWarStrategy≤60字, newBuyingReason≤60字, commodityAvoidanceAngle≤60字）。詳細はMarkdownセクションに書くこと。
 
 \`\`\`json
 [
@@ -79,8 +79,6 @@ JSONの各フィールドは必ず簡潔に記述すること（目安: name≤2
     "mallStrategy": "モールでの売り方（60字以内）",
     "wholesaleOpportunity": "卸展開の可能性（40字以内）",
     "salesChannels": ["チャネル1"],
-    "snsAdHook": "SNS広告フック（50字以内）",
-    "lpFirstView": "LPファーストビュー案（40字以内）",
     "storeCopy": "店頭POPコピー（16字以内）",
     "packageExperience": "容器・形状・使用体験の特徴（60字以内）",
     "repeatReason": "リピート購入理由（40字以内）",
@@ -89,12 +87,16 @@ JSONの各フィールドは必ず簡潔に記述すること（目安: name≤2
     "existingProductConflict": "既存商品との被り・カニバリ可能性（60字以内）",
     "seriesExpansion": "シリーズ化・横展開の余地（40字以内）",
     "wholesaleFit": "卸展開との相性（40字以内）",
-    "validationMethod": "初回検証方法（60字以内）",
     "regulatoryRisk": "法規制・表示リスク（60字以内）",
     "regulatoryExpressionRisk": "薬機法・景表法・食品表示上の表現リスク（60字以内）",
     "risks": "主なリスク（60字以内）",
     "noveltyComparedToPast": "過去案との差分・新しい点（60字以内、過去案がなければ空文字）",
-    "relatedPastIdea": "似ている過去案の商品名（30字以内、なければ空文字）"
+    "relatedPastIdea": "似ている過去案の商品名（30字以内、なければ空文字）",
+    "visualProof": "仕様から自然に生まれる視覚的訴求・使用シーン（60字以内）",
+    "beforeAfterPotential": "ビフォーアフター・変化訴求の可能性（40字以内）",
+    "avoidBigBrandWarStrategy": "商品仕様上の大手回避戦略（形状・処方・体験・文脈）（60字以内）",
+    "newBuyingReason": "既存品でなくこれを買う理由（仕様に根ざしたもの）（60字以内）",
+    "commodityAvoidanceAngle": "コモディティ化を避ける商品設計上の切り口（60字以内）"
   }
 ]
 \`\`\`
@@ -105,7 +107,7 @@ JSONの各フィールドは必ず簡潔に記述すること（目安: name≤2
 （各商品案の詳細をMarkdownで記述。2〜${config.dailyIdeaCount}も同様に）
 `;
 
-  const output = await callClaude({ systemPrompt, userMessage, maxTokens: 16000 });
+  const output = await callClaude({ systemPrompt, userMessage, maxTokens: 24000 });
   writeOutputFile(OUTPUT_FILE, output);
   console.log(`[4/6] product-planner completed: outputs/${OUTPUT_FILE}`);
 
