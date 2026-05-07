@@ -12,6 +12,8 @@ const OUTPUT_FILE = "04-product-ideas.md";
 export async function runProductPlanner(
   config: AppConfig,
   pastIdeasText = "（過去の提案履歴なし — 初回実行）",
+  pastCategoryFrequencyText = "（カテゴリ集計なし — 初回実行）",
+  pastHighScoringText = "（高評価案なし — 初回実行）",
 ): Promise<ProductIdea[]> {
   console.log("[4/6] product-planner started");
 
@@ -31,8 +33,17 @@ export async function runProductPlanner(
 - 避けること：${config.avoid.join("、")}
 - 生成数：${config.dailyIdeaCount}個
 
-## 過去提案済みの商品案（重複回避対象）
+## 過去提案済みの商品案【A: 直近50件詳細】
 ${pastIdeasText}
+
+## 過去提案済みの商品案【B: カテゴリ飽和マップ（全履歴集計 top20）】
+提案回数が多いほど飽和しているカテゴリ。同じ組み合わせを再度出すことは禁止。
+${pastCategoryFrequencyText}
+
+## 過去提案済みの商品案【C: 高評価案（評価点75点以上 max30件）】
+高評価案と同じ「新しい買う理由」や「コモディティ化回避の切り口」を使い回すことは禁止。
+これらを超える差別化・新規性が必要。
+${pastHighScoringText}
 
 ## 制約
 - 必ず以下の順番で13案を出すこと

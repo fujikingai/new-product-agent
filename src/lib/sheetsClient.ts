@@ -458,26 +458,29 @@ export async function saveIdeaDetailsToSheet(runDate: string): Promise<void> {
 // ---- 過去案履歴取得 --------------------------------------------------------
 
 export interface PastIdeaSummary {
-  brandTrack: string;    // 枠（日本語ラベル）
+  brandTrack: string;             // 枠（日本語ラベル）
   lineType: string;
   name: string;
-  worryCategory: string; // 悩みカテゴリ
-  productCategory: string; // 商品カテゴリ
-  worryTarget: string;   // 対応する悩み
-  overview: string;      // 商品概要
-  catchphrase: string;   // キャッチコピー
-  score: number;         // 評価点
+  worryCategory: string;          // 悩みカテゴリ
+  productCategory: string;        // 商品カテゴリ
+  worryTarget: string;            // 対応する悩み
+  overview: string;               // 商品概要
+  catchphrase: string;            // キャッチコピー
+  score: number;                  // 評価点
+  newBuyingReason: string;        // 新しい買う理由（col 36）
+  commodityAvoidanceAngle: string; // コモディティ化回避の切り口（col 37）
 }
 
 /**
- * IdeaDetails シートから直近50件の商品案サマリーを取得する。
+ * IdeaDetails シートから直近200件の商品案サマリーを取得する。
  * シートが存在しない・認証情報未設定・API失敗時はすべて空配列を返す（初回実行を考慮）。
  *
  * 取得カラム（0-indexed）:
  *   0:実行日, 2:商品名, 3:評価点, 5:対応する悩み, 6:商品概要, 7:キャッチコピー,
- *   22:枠, 23:lineType, 31:悩みカテゴリ, 32:商品カテゴリ
+ *   22:枠, 23:lineType, 31:悩みカテゴリ, 32:商品カテゴリ,
+ *   36:新しい買う理由, 37:コモディティ化回避の切り口
  *
- * 既存データで col 31/32 が空の場合はフォールバックとして空文字を返す（エラーにならない）。
+ * 既存データで各列が空の場合はフォールバックとして空文字を返す（エラーにならない）。
  */
 export async function fetchPastIdeasFromSheet(): Promise<PastIdeaSummary[]> {
   // Sheets 設定が未完了な環境ではスキップ
@@ -486,29 +489,31 @@ export async function fetchPastIdeasFromSheet(): Promise<PastIdeaSummary[]> {
     const sheets = createSheetsClient();
     const spreadsheetId = getEnv("GOOGLE_SHEETS_SPREADSHEET_ID");
 
-    // A:AG = col 0〜32（悩みカテゴリ・商品カテゴリを含む全列）
+    // A:AL = col 0〜37（newBuyingReason・commodityAvoidanceAngle を含む全列）
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${SHEET_IDEADETAILS}!A:AG`,
+      range: `${SHEET_IDEADETAILS}!A:AL`,
     });
 
     const rows = res.data.values ?? [];
     if (rows.length <= 1) return [];  // ヘッダーのみ or 空
 
-    // ヘッダー行を除いた最新50件
-    const dataRows = rows.slice(1).slice(-50);
+    // ヘッダー行を除いた最新200件
+    const dataRows = rows.slice(1).slice(-200);
 
     return dataRows
       .map(row => ({
-        brandTrack:      String(row[22] ?? ""),
-        lineType:        String(row[23] ?? ""),
-        name:            String(row[2]  ?? ""),
-        worryCategory:   String(row[31] ?? ""),  // 既存データでは空になる（エラーにならない）
-        productCategory: String(row[32] ?? ""),  // 既存データでは空になる（エラーにならない）
-        worryTarget:     String(row[5]  ?? ""),
-        overview:        String(row[6]  ?? ""),
-        catchphrase:     String(row[7]  ?? ""),
-        score:           parseInt(String(row[3] ?? "0")) || 0,
+        brandTrack:               String(row[22] ?? ""),
+        lineType:                 String(row[23] ?? ""),
+        name:                     String(row[2]  ?? ""),
+        worryCategory:            String(row[31] ?? ""),
+        productCategory:          String(row[32] ?? ""),
+        worryTarget:              String(row[5]  ?? ""),
+        overview:                 String(row[6]  ?? ""),
+        catchphrase:              String(row[7]  ?? ""),
+        score:                    parseInt(String(row[3] ?? "0")) || 0,
+        newBuyingReason:          String(row[36] ?? ""),
+        commodityAvoidanceAngle:  String(row[37] ?? ""),
       }))
       .filter(r => r.name.length > 0);  // 空行を除外
   } catch {
@@ -518,7 +523,7 @@ export async function fetchPastIdeasFromSheet(): Promise<PastIdeaSummary[]> {
 }
 
 /**
- * PastIdeaSummary[] を product-planner プロンプト用の簡潔なテキストに変換する。
+ * PastIdeaSummary[] の直近50件を product-planner プロンプト用の詳細テキストに変換する（Section A）。
  *
  * 出力形式（1行1案）:
  * - 枠 / lineType / 商品名：〇〇 / 悩みカテゴリ：〇〇 / 商品カテゴリ：〇〇 / 悩み：〇〇 / 概要：〇〇 / キャッチ：〇〇 / 評価点：〇〇
@@ -527,7 +532,9 @@ export async function fetchPastIdeasFromSheet(): Promise<PastIdeaSummary[]> {
  */
 export function formatPastIdeasForPrompt(pastIdeas: PastIdeaSummary[]): string {
   if (pastIdeas.length === 0) return "（過去の提案履歴なし — 初回実行）";
-  return pastIdeas
+  // 最新50件のみ詳細表示
+  const recent = pastIdeas.slice(-50);
+  return recent
     .map(p => [
       `- ${p.brandTrack} / ${p.lineType}`,
       `商品名：${p.name}`,
@@ -537,6 +544,85 @@ export function formatPastIdeasForPrompt(pastIdeas: PastIdeaSummary[]): string {
       `概要：${p.overview}`,
       `キャッチ：${p.catchphrase}`,
       `評価点：${p.score}`,
+    ].join(" / "))
+    .join("\n");
+}
+
+// ---- 過去案集計・分析ユーティリティ -------------------------------------------
+
+export interface PastCategoryFrequency {
+  worryCategory: string;
+  productCategory: string;
+  brandTrack: string;
+  count: number;
+}
+
+/**
+ * 過去200件の全案を（悩みカテゴリ × 商品カテゴリ × 枠）でグループ化し、
+ * 提案回数の多い順 top20 を返す（Section B: カテゴリ飽和マップ）。
+ */
+export function summarizePastCategoryFrequency(pastIdeas: PastIdeaSummary[]): PastCategoryFrequency[] {
+  const freq = new Map<string, PastCategoryFrequency>();
+  for (const idea of pastIdeas) {
+    const key = `${idea.brandTrack}|${idea.worryCategory}|${idea.productCategory}`;
+    if (!freq.has(key)) {
+      freq.set(key, {
+        worryCategory: idea.worryCategory,
+        productCategory: idea.productCategory,
+        brandTrack: idea.brandTrack,
+        count: 0,
+      });
+    }
+    freq.get(key)!.count++;
+  }
+  return [...freq.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 20);
+}
+
+/**
+ * PastCategoryFrequency[] を product-planner プロンプト用テキストに変換する（Section B）。
+ */
+export function formatPastCategoryFrequencyForPrompt(summary: PastCategoryFrequency[]): string {
+  if (summary.length === 0) return "（カテゴリ集計なし — 初回実行）";
+  return summary
+    .map(s =>
+      `- ${s.brandTrack} / 悩みカテゴリ：${s.worryCategory || "未設定"} / 商品カテゴリ：${s.productCategory || "未設定"} / 提案回数：${s.count}回`
+    )
+    .join("\n");
+}
+
+/**
+ * 評価点が threshold 以上の案を score 降順で最大 limit 件返す（Section C: 高評価参照）。
+ */
+export function filterHighScoringPastIdeas(
+  pastIdeas: PastIdeaSummary[],
+  threshold = 75,
+  limit = 30,
+): PastIdeaSummary[] {
+  return pastIdeas
+    .filter(idea => idea.score >= threshold)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}
+
+/**
+ * 高評価過去案リストを product-planner プロンプト用テキストに変換する（Section C）。
+ * 新しい買う理由・コモディティ化回避の切り口を付加して、焼き直し防止に使う。
+ */
+export function formatHighScoringPastIdeasForPrompt(ideas: PastIdeaSummary[]): string {
+  if (ideas.length === 0) return "（高評価案なし — 初回実行）";
+  return ideas
+    .map(p => [
+      `- ${p.brandTrack} / ${p.lineType}`,
+      `商品名：${p.name}`,
+      `評価点：${p.score}`,
+      `悩みカテゴリ：${p.worryCategory || "未設定"}`,
+      `商品カテゴリ：${p.productCategory || "未設定"}`,
+      `悩み：${p.worryTarget}`,
+      `概要：${p.overview}`,
+      `新しい買う理由：${p.newBuyingReason || "未設定"}`,
+      `コモディティ化回避：${p.commodityAvoidanceAngle || "未設定"}`,
     ].join(" / "))
     .join("\n");
 }

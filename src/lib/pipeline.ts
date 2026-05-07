@@ -5,7 +5,14 @@ import { runTrendResearcher } from "../agents/runTrendResearcher.js";
 import { runProductPlanner } from "../agents/runProductPlanner.js";
 import { runEvaluator } from "../agents/runEvaluator.js";
 import { runEditor } from "../agents/runEditor.js";
-import { fetchPastIdeasFromSheet, formatPastIdeasForPrompt } from "./sheetsClient.js";
+import {
+  fetchPastIdeasFromSheet,
+  formatPastIdeasForPrompt,
+  summarizePastCategoryFrequency,
+  formatPastCategoryFrequencyForPrompt,
+  filterHighScoringPastIdeas,
+  formatHighScoringPastIdeasForPrompt,
+} from "./sheetsClient.js";
 import type { AppConfig } from "../types.js";
 
 /**
@@ -17,12 +24,19 @@ export async function runFullPipeline(config: AppConfig): Promise<void> {
   await runMarketResearcher(config);
   await runCompetitorResearcher(config);
   await runTrendResearcher(config);
+
   const pastIdeas = await fetchPastIdeasFromSheet();
-  const pastIdeasText = formatPastIdeasForPrompt(pastIdeas);
   if (pastIdeas.length > 0) {
-    console.log(`[pipeline] 過去案 ${pastIdeas.length} 件を参照（重複回避）`);
+    console.log(`[pipeline] 過去案 ${pastIdeas.length} 件を取得（重複回避に使用）`);
   }
-  await runProductPlanner(config, pastIdeasText);
+
+  const pastIdeasText            = formatPastIdeasForPrompt(pastIdeas);           // 直近50件詳細
+  const categoryFrequency        = summarizePastCategoryFrequency(pastIdeas);      // カテゴリ集計
+  const pastCategoryFrequencyText = formatPastCategoryFrequencyForPrompt(categoryFrequency);
+  const highScoringIdeas         = filterHighScoringPastIdeas(pastIdeas);          // 高評価案（≥75点・max30）
+  const pastHighScoringText      = formatHighScoringPastIdeasForPrompt(highScoringIdeas);
+
+  await runProductPlanner(config, pastIdeasText, pastCategoryFrequencyText, pastHighScoringText);
   await runEvaluator(config);
   await runEditor(config);
 }

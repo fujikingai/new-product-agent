@@ -15,6 +15,10 @@ import { runEditor } from "./agents/runEditor.js";
 import {
   fetchPastIdeasFromSheet,
   formatPastIdeasForPrompt,
+  summarizePastCategoryFrequency,
+  formatPastCategoryFrequencyForPrompt,
+  filterHighScoringPastIdeas,
+  formatHighScoringPastIdeasForPrompt,
   saveIdeasToSheet,
   saveIdeaDetailsToSheet,
   saveBrandSummaryToSheet,
@@ -53,12 +57,17 @@ async function main(): Promise<void> {
     ensureOutputDir();
 
     const pastIdeas = await fetchPastIdeasFromSheet();
-    const pastIdeasText = formatPastIdeasForPrompt(pastIdeas);
     if (pastIdeas.length > 0) {
-      console.log(`[pipeline] 過去案 ${pastIdeas.length} 件を参照（重複回避）`);
+      console.log(`[pipeline] 過去案 ${pastIdeas.length} 件を取得（重複回避に使用）`);
     }
 
-    await runProductPlanner(config, pastIdeasText);
+    const pastIdeasText             = formatPastIdeasForPrompt(pastIdeas);
+    const categoryFrequency         = summarizePastCategoryFrequency(pastIdeas);
+    const pastCategoryFrequencyText = formatPastCategoryFrequencyForPrompt(categoryFrequency);
+    const highScoringIdeas          = filterHighScoringPastIdeas(pastIdeas);
+    const pastHighScoringText       = formatHighScoringPastIdeasForPrompt(highScoringIdeas);
+
+    await runProductPlanner(config, pastIdeasText, pastCategoryFrequencyText, pastHighScoringText);
     await runEvaluator(config);
     await runEditor(config);
 
