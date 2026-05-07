@@ -85,6 +85,8 @@ export interface ProductIdea {
   avoidBigBrandWarStrategy?: string; // 商品仕様上の大手回避戦略
   newBuyingReason?: string;          // 既存品ではなくこれを買う理由（仕様に根ざしたもの）
   commodityAvoidanceAngle?: string;  // コモディティ化を避ける商品設計上の切り口
+  // 重複回避用フィンガープリント（TypeScript側で自動生成、Claude出力JSONには含めない）
+  ideaFingerprint?: string;
   // 廃止フィールド（後方互換のためoptionalで残す。Claude出力JSONには含めない）
   validationMethod?: string;
   snsAdHook?: string;

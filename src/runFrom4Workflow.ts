@@ -17,8 +17,12 @@ import {
   formatPastIdeasForPrompt,
   summarizePastCategoryFrequency,
   formatPastCategoryFrequencyForPrompt,
+  computeCooldownCategories,
+  formatCooldownCategoriesForPrompt,
   filterHighScoringPastIdeas,
   formatHighScoringPastIdeasForPrompt,
+  summarizeFingerprintFrequency,
+  formatFingerprintFrequencyForPrompt,
   saveIdeasToSheet,
   saveIdeaDetailsToSheet,
   saveBrandSummaryToSheet,
@@ -58,16 +62,27 @@ async function main(): Promise<void> {
 
     const pastIdeas = await fetchPastIdeasFromSheet();
     if (pastIdeas.length > 0) {
-      console.log(`[pipeline] 過去案 ${pastIdeas.length} 件を取得（重複回避に使用）`);
+      console.log(`[pipeline] 過去案 全${pastIdeas.length}件を取得（重複回避に使用）`);
     }
 
-    const pastIdeasText             = formatPastIdeasForPrompt(pastIdeas);
-    const categoryFrequency         = summarizePastCategoryFrequency(pastIdeas);
-    const pastCategoryFrequencyText = formatPastCategoryFrequencyForPrompt(categoryFrequency);
-    const highScoringIdeas          = filterHighScoringPastIdeas(pastIdeas);
-    const pastHighScoringText       = formatHighScoringPastIdeasForPrompt(highScoringIdeas);
+    const pastIdeasText              = formatPastIdeasForPrompt(pastIdeas);
+    const categoryFrequency          = summarizePastCategoryFrequency(pastIdeas);
+    const pastCategoryFrequencyText  = formatPastCategoryFrequencyForPrompt(categoryFrequency);
+    const cooldowns                  = computeCooldownCategories(pastIdeas);
+    const cooldownText               = formatCooldownCategoriesForPrompt(cooldowns);
+    const highScoringIdeas           = filterHighScoringPastIdeas(pastIdeas);
+    const pastHighScoringText        = formatHighScoringPastIdeasForPrompt(highScoringIdeas);
+    const fpFrequency                = summarizeFingerprintFrequency(pastIdeas);
+    const fingerprintText            = formatFingerprintFrequencyForPrompt(fpFrequency);
 
-    await runProductPlanner(config, pastIdeasText, pastCategoryFrequencyText, pastHighScoringText);
+    await runProductPlanner(
+      config,
+      pastIdeasText,
+      pastCategoryFrequencyText,
+      cooldownText,
+      pastHighScoringText,
+      fingerprintText,
+    );
     await runEvaluator(config);
     await runEditor(config);
 

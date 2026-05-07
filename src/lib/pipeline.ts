@@ -10,8 +10,12 @@ import {
   formatPastIdeasForPrompt,
   summarizePastCategoryFrequency,
   formatPastCategoryFrequencyForPrompt,
+  computeCooldownCategories,
+  formatCooldownCategoriesForPrompt,
   filterHighScoringPastIdeas,
   formatHighScoringPastIdeasForPrompt,
+  summarizeFingerprintFrequency,
+  formatFingerprintFrequencyForPrompt,
 } from "./sheetsClient.js";
 import type { AppConfig } from "../types.js";
 
@@ -27,16 +31,32 @@ export async function runFullPipeline(config: AppConfig): Promise<void> {
 
   const pastIdeas = await fetchPastIdeasFromSheet();
   if (pastIdeas.length > 0) {
-    console.log(`[pipeline] 過去案 ${pastIdeas.length} 件を取得（重複回避に使用）`);
+    console.log(`[pipeline] 過去案 全${pastIdeas.length}件を取得（重複回避に使用）`);
   }
 
-  const pastIdeasText            = formatPastIdeasForPrompt(pastIdeas);           // 直近50件詳細
-  const categoryFrequency        = summarizePastCategoryFrequency(pastIdeas);      // カテゴリ集計
-  const pastCategoryFrequencyText = formatPastCategoryFrequencyForPrompt(categoryFrequency);
-  const highScoringIdeas         = filterHighScoringPastIdeas(pastIdeas);          // 高評価案（≥75点・max30）
-  const pastHighScoringText      = formatHighScoringPastIdeasForPrompt(highScoringIdeas);
+  // Section 1: 直近50件詳細
+  const pastIdeasText              = formatPastIdeasForPrompt(pastIdeas);
+  // Section 2: 全期間カテゴリ集計 top30
+  const categoryFrequency          = summarizePastCategoryFrequency(pastIdeas);
+  const pastCategoryFrequencyText  = formatPastCategoryFrequencyForPrompt(categoryFrequency);
+  // Section 3: 直近クールダウンカテゴリ（直近65案内で2回以上）
+  const cooldowns                  = computeCooldownCategories(pastIdeas);
+  const cooldownText               = formatCooldownCategoriesForPrompt(cooldowns);
+  // Section 4: 全期間高評価案（≥75点・max50・直近優先）
+  const highScoringIdeas           = filterHighScoringPastIdeas(pastIdeas);
+  const pastHighScoringText        = formatHighScoringPastIdeasForPrompt(highScoringIdeas);
+  // Section 5: 頻出フィンガープリント top50
+  const fpFrequency                = summarizeFingerprintFrequency(pastIdeas);
+  const fingerprintText            = formatFingerprintFrequencyForPrompt(fpFrequency);
 
-  await runProductPlanner(config, pastIdeasText, pastCategoryFrequencyText, pastHighScoringText);
+  await runProductPlanner(
+    config,
+    pastIdeasText,
+    pastCategoryFrequencyText,
+    cooldownText,
+    pastHighScoringText,
+    fingerprintText,
+  );
   await runEvaluator(config);
   await runEditor(config);
 }

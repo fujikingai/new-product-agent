@@ -11,9 +11,11 @@ const OUTPUT_FILE = "04-product-ideas.md";
 
 export async function runProductPlanner(
   config: AppConfig,
-  pastIdeasText = "（過去の提案履歴なし — 初回実行）",
+  pastIdeasText            = "（過去の提案履歴なし — 初回実行）",
   pastCategoryFrequencyText = "（カテゴリ集計なし — 初回実行）",
-  pastHighScoringText = "（高評価案なし — 初回実行）",
+  cooldownText             = "（クールダウン対象なし）",
+  pastHighScoringText      = "（高評価案なし — 初回実行）",
+  fingerprintText          = "（フィンガープリント集計なし — 初回実行）",
 ): Promise<ProductIdea[]> {
   console.log("[4/6] product-planner started");
 
@@ -33,17 +35,27 @@ export async function runProductPlanner(
 - 避けること：${config.avoid.join("、")}
 - 生成数：${config.dailyIdeaCount}個
 
-## 過去提案済みの商品案【A: 直近50件詳細】
+## 過去提案済みの商品案【1: 直近50件詳細】
+直近の完全被りを防ぐための詳細リスト。同じ悩み×商品カテゴリ×枠の焼き直しは禁止。
 ${pastIdeasText}
 
-## 過去提案済みの商品案【B: カテゴリ飽和マップ（全履歴集計 top20）】
-提案回数が多いほど飽和しているカテゴリ。同じ組み合わせを再度出すことは禁止。
+## 過去提案済みの商品案【2: 全期間カテゴリ頻度 top30】
+全履歴を対象に（枠×lineType×悩みカテゴリ×商品カテゴリ）の出現回数を集計。提案回数が多いほど飽和している。
+同じ組み合わせを再度出す場合は、素材・形状・使用体験・ターゲット・ブランド文脈に明確な差分が必要。
 ${pastCategoryFrequencyText}
 
-## 過去提案済みの商品案【C: 高評価案（評価点75点以上 max30件）】
-高評価案と同じ「新しい買う理由」や「コモディティ化回避の切り口」を使い回すことは禁止。
-これらを超える差別化・新規性が必要。
+## 過去提案済みの商品案【3: 直近クールダウンカテゴリ（直近5回内で2回以上）】
+以下のカテゴリは原則避けること。再提案する場合は、商品形状・摂取体験・使用体験・ブランド文脈・卸棚での見え方など、仕様上の明確な差分がある場合のみ許可。
+${cooldownText}
+
+## 過去提案済みの商品案【4: 全期間高評価案（評価点75点以上 max50件）】
+高評価案と同じ「新しい買う理由」や「コモディティ化回避の切り口」を使い回すことは禁止。これらを超える差別化・新規性が必要。
 ${pastHighScoringText}
+
+## 過去提案済みの商品案【5: 頻出フィンガープリント top50】
+形式: brandTrack|lineType|worryCategory|productCategory|容器形状|コモディティ回避 — 出現回数が多いパターン。
+今回の13案のフィンガープリントが、このリストに近い場合は別の角度を探すこと。
+${fingerprintText}
 
 ## 制約
 - 必ず以下の順番で13案を出すこと

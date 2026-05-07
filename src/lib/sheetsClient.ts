@@ -61,6 +61,8 @@ const IDEADETAILS_HEADER = [
   "大手を避ける勝ち筋",
   "新しい買う理由",
   "コモディティ化回避の切り口",
+  // 追加列（重複判定用フィンガープリント）col 38
+  "ideaFingerprint",
 ];
 
 // BrandSummary シートのヘッダー（枠別最有力案）
@@ -436,6 +438,7 @@ export async function saveIdeaDetailsToSheet(runDate: string): Promise<void> {
       idea.avoidBigBrandWarStrategy || "",
       idea.newBuyingReason || "",
       idea.commodityAvoidanceAngle || "",
+      buildIdeaFingerprint(idea),            // ideaFingerprint（col 38・自動生成）
     ];
   });
 
@@ -455,84 +458,100 @@ export async function saveIdeaDetailsToSheet(runDate: string): Promise<void> {
   console.log(`[sheets] IdeaDetails シートに ${rows.length} 行（全${ranked.length}案）を追記しました`);
 }
 
+// ---- ideaFingerprint ビルダー -----------------------------------------------
+
+/**
+ * ProductIdea から重複判定用フィンガープリントを生成する。
+ * 形式: brandTrack|lineType|worryCategory|productCategory|容器形状(15字)|コモディティ回避(20字)
+ * 例: Teaflex|FunctionalTea|血糖値|機能性粉末ティー|スティックスティック|食後の糖質ケア茶
+ */
+export function buildIdeaFingerprint(idea: ProductIdea): string {
+  const shape = (idea.packageExperience || "").slice(0, 15).replace(/\|/g, "/");
+  const angle = (idea.commodityAvoidanceAngle || "").slice(0, 20).replace(/\|/g, "/");
+  return [
+    idea.brandTrack,
+    idea.lineType,
+    idea.worryCategory || "未設定",
+    idea.productCategory || "未設定",
+    shape || "未設定",
+    angle || "未設定",
+  ].join("|");
+}
+
 // ---- 過去案履歴取得 --------------------------------------------------------
 
 export interface PastIdeaSummary {
-  brandTrack: string;             // 枠（日本語ラベル）
+  brandTrack: string;              // 枠（日本語ラベル）
   lineType: string;
   name: string;
-  worryCategory: string;          // 悩みカテゴリ
-  productCategory: string;        // 商品カテゴリ
-  worryTarget: string;            // 対応する悩み
-  overview: string;               // 商品概要
-  catchphrase: string;            // キャッチコピー
-  score: number;                  // 評価点
-  newBuyingReason: string;        // 新しい買う理由（col 36）
+  worryCategory: string;           // 悩みカテゴリ
+  productCategory: string;         // 商品カテゴリ
+  worryTarget: string;             // 対応する悩み
+  overview: string;                // 商品概要
+  catchphrase: string;             // キャッチコピー
+  score: number;                   // 評価点
+  newBuyingReason: string;         // 新しい買う理由（col 36）
   commodityAvoidanceAngle: string; // コモディティ化回避の切り口（col 37）
+  ideaFingerprint: string;         // 重複判定フィンガープリント（col 38）
 }
 
 /**
- * IdeaDetails シートから直近200件の商品案サマリーを取得する。
+ * IdeaDetails シートから全履歴の商品案サマリーを取得する。
  * シートが存在しない・認証情報未設定・API失敗時はすべて空配列を返す（初回実行を考慮）。
  *
  * 取得カラム（0-indexed）:
  *   0:実行日, 2:商品名, 3:評価点, 5:対応する悩み, 6:商品概要, 7:キャッチコピー,
  *   22:枠, 23:lineType, 31:悩みカテゴリ, 32:商品カテゴリ,
- *   36:新しい買う理由, 37:コモディティ化回避の切り口
+ *   36:新しい買う理由, 37:コモディティ化回避の切り口, 38:ideaFingerprint
  *
  * 既存データで各列が空の場合はフォールバックとして空文字を返す（エラーにならない）。
  */
 export async function fetchPastIdeasFromSheet(): Promise<PastIdeaSummary[]> {
-  // Sheets 設定が未完了な環境ではスキップ
   if (!process.env.GOOGLE_SHEETS_SPREADSHEET_ID) return [];
   try {
     const sheets = createSheetsClient();
     const spreadsheetId = getEnv("GOOGLE_SHEETS_SPREADSHEET_ID");
 
-    // A:AL = col 0〜37（newBuyingReason・commodityAvoidanceAngle を含む全列）
+    // A:AM = col 0〜38（ideaFingerprint を含む全列）
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${SHEET_IDEADETAILS}!A:AL`,
+      range: `${SHEET_IDEADETAILS}!A:AM`,
     });
 
     const rows = res.data.values ?? [];
     if (rows.length <= 1) return [];  // ヘッダーのみ or 空
 
-    // ヘッダー行を除いた最新200件
-    const dataRows = rows.slice(1).slice(-200);
+    // ヘッダー行を除いた全履歴（件数制限なし）
+    const dataRows = rows.slice(1);
 
     return dataRows
       .map(row => ({
-        brandTrack:               String(row[22] ?? ""),
-        lineType:                 String(row[23] ?? ""),
-        name:                     String(row[2]  ?? ""),
-        worryCategory:            String(row[31] ?? ""),
-        productCategory:          String(row[32] ?? ""),
-        worryTarget:              String(row[5]  ?? ""),
-        overview:                 String(row[6]  ?? ""),
-        catchphrase:              String(row[7]  ?? ""),
-        score:                    parseInt(String(row[3] ?? "0")) || 0,
-        newBuyingReason:          String(row[36] ?? ""),
-        commodityAvoidanceAngle:  String(row[37] ?? ""),
+        brandTrack:              String(row[22] ?? ""),
+        lineType:                String(row[23] ?? ""),
+        name:                    String(row[2]  ?? ""),
+        worryCategory:           String(row[31] ?? ""),
+        productCategory:         String(row[32] ?? ""),
+        worryTarget:             String(row[5]  ?? ""),
+        overview:                String(row[6]  ?? ""),
+        catchphrase:             String(row[7]  ?? ""),
+        score:                   parseInt(String(row[3] ?? "0")) || 0,
+        newBuyingReason:         String(row[36] ?? ""),
+        commodityAvoidanceAngle: String(row[37] ?? ""),
+        ideaFingerprint:         String(row[38] ?? ""),
       }))
-      .filter(r => r.name.length > 0);  // 空行を除外
+      .filter(r => r.name.length > 0);
   } catch {
-    // シート未存在・認証エラーなどは無視して空配列を返す
     return [];
   }
 }
 
+// ---- 過去案集計・分析ユーティリティ -------------------------------------------
+
 /**
- * PastIdeaSummary[] の直近50件を product-planner プロンプト用の詳細テキストに変換する（Section A）。
- *
- * 出力形式（1行1案）:
- * - 枠 / lineType / 商品名：〇〇 / 悩みカテゴリ：〇〇 / 商品カテゴリ：〇〇 / 悩み：〇〇 / 概要：〇〇 / キャッチ：〇〇 / 評価点：〇〇
- *
- * 既存データで worryCategory / productCategory が空の場合は「未設定」を表示する。
+ * 直近50件を product-planner プロンプト用の詳細テキストに変換する（Section 1）。
  */
 export function formatPastIdeasForPrompt(pastIdeas: PastIdeaSummary[]): string {
   if (pastIdeas.length === 0) return "（過去の提案履歴なし — 初回実行）";
-  // 最新50件のみ詳細表示
   const recent = pastIdeas.slice(-50);
   return recent
     .map(p => [
@@ -548,28 +567,28 @@ export function formatPastIdeasForPrompt(pastIdeas: PastIdeaSummary[]): string {
     .join("\n");
 }
 
-// ---- 過去案集計・分析ユーティリティ -------------------------------------------
-
 export interface PastCategoryFrequency {
+  brandTrack: string;
+  lineType: string;
   worryCategory: string;
   productCategory: string;
-  brandTrack: string;
   count: number;
 }
 
 /**
- * 過去200件の全案を（悩みカテゴリ × 商品カテゴリ × 枠）でグループ化し、
- * 提案回数の多い順 top20 を返す（Section B: カテゴリ飽和マップ）。
+ * 全履歴を（枠 × lineType × 悩みカテゴリ × 商品カテゴリ）でグループ化し、
+ * 提案回数の多い順 top30 を返す（Section 2: 全期間カテゴリ飽和マップ）。
  */
 export function summarizePastCategoryFrequency(pastIdeas: PastIdeaSummary[]): PastCategoryFrequency[] {
   const freq = new Map<string, PastCategoryFrequency>();
   for (const idea of pastIdeas) {
-    const key = `${idea.brandTrack}|${idea.worryCategory}|${idea.productCategory}`;
+    const key = `${idea.brandTrack}|${idea.lineType}|${idea.worryCategory}|${idea.productCategory}`;
     if (!freq.has(key)) {
       freq.set(key, {
+        brandTrack: idea.brandTrack,
+        lineType: idea.lineType,
         worryCategory: idea.worryCategory,
         productCategory: idea.productCategory,
-        brandTrack: idea.brandTrack,
         count: 0,
       });
     }
@@ -577,39 +596,77 @@ export function summarizePastCategoryFrequency(pastIdeas: PastIdeaSummary[]): Pa
   }
   return [...freq.values()]
     .sort((a, b) => b.count - a.count)
-    .slice(0, 20);
+    .slice(0, 30);
 }
 
-/**
- * PastCategoryFrequency[] を product-planner プロンプト用テキストに変換する（Section B）。
- */
 export function formatPastCategoryFrequencyForPrompt(summary: PastCategoryFrequency[]): string {
   if (summary.length === 0) return "（カテゴリ集計なし — 初回実行）";
   return summary
     .map(s =>
-      `- ${s.brandTrack} / 悩みカテゴリ：${s.worryCategory || "未設定"} / 商品カテゴリ：${s.productCategory || "未設定"} / 提案回数：${s.count}回`
+      `- ${s.brandTrack} / ${s.lineType} / 悩みカテゴリ：${s.worryCategory || "未設定"} / 商品カテゴリ：${s.productCategory || "未設定"} / 提案回数：${s.count}回`
+    )
+    .join("\n");
+}
+
+export interface CooldownCategory {
+  brandTrack: string;
+  lineType: string;
+  worryCategory: string;
+  productCategory: string;
+  recentCount: number; // 直近5回（65案）内の出現回数
+}
+
+/**
+ * 直近5回分（=直近65案）を対象に、
+ * （枠 × lineType × 悩みカテゴリ × 商品カテゴリ）の出現回数が 2回以上 のものをクールダウン対象として返す。
+ */
+export function computeCooldownCategories(pastIdeas: PastIdeaSummary[]): CooldownCategory[] {
+  const recent65 = pastIdeas.slice(-65);
+  const freq = new Map<string, CooldownCategory>();
+  for (const idea of recent65) {
+    const key = `${idea.brandTrack}|${idea.lineType}|${idea.worryCategory}|${idea.productCategory}`;
+    if (!freq.has(key)) {
+      freq.set(key, {
+        brandTrack: idea.brandTrack,
+        lineType: idea.lineType,
+        worryCategory: idea.worryCategory,
+        productCategory: idea.productCategory,
+        recentCount: 0,
+      });
+    }
+    freq.get(key)!.recentCount++;
+  }
+  return [...freq.values()]
+    .filter(c => c.recentCount >= 2)
+    .sort((a, b) => b.recentCount - a.recentCount);
+}
+
+export function formatCooldownCategoriesForPrompt(cooldowns: CooldownCategory[]): string {
+  if (cooldowns.length === 0) return "（クールダウン対象なし）";
+  return cooldowns
+    .map(c =>
+      `- ${c.brandTrack} / ${c.lineType} / ${c.worryCategory || "未設定"} / ${c.productCategory || "未設定"}：直近5回で${c.recentCount}回`
     )
     .join("\n");
 }
 
 /**
- * 評価点が threshold 以上の案を score 降順で最大 limit 件返す（Section C: 高評価参照）。
+ * 全履歴から評価点 threshold 以上の案を抽出し、
+ * 評価点降順・直近優先（配列の後ろ＝新しい）でソートして最大 limit 件返す（Section 4: 高評価参照）。
  */
 export function filterHighScoringPastIdeas(
   pastIdeas: PastIdeaSummary[],
   threshold = 75,
-  limit = 30,
+  limit = 50,
 ): PastIdeaSummary[] {
   return pastIdeas
-    .filter(idea => idea.score >= threshold)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+    .map((idea, idx) => ({ idea, idx }))
+    .filter(({ idea }) => idea.score >= threshold)
+    .sort((a, b) => b.idea.score - a.idea.score || b.idx - a.idx)
+    .slice(0, limit)
+    .map(({ idea }) => idea);
 }
 
-/**
- * 高評価過去案リストを product-planner プロンプト用テキストに変換する（Section C）。
- * 新しい買う理由・コモディティ化回避の切り口を付加して、焼き直し防止に使う。
- */
 export function formatHighScoringPastIdeasForPrompt(ideas: PastIdeaSummary[]): string {
   if (ideas.length === 0) return "（高評価案なし — 初回実行）";
   return ideas
@@ -624,6 +681,35 @@ export function formatHighScoringPastIdeasForPrompt(ideas: PastIdeaSummary[]): s
       `新しい買う理由：${p.newBuyingReason || "未設定"}`,
       `コモディティ化回避：${p.commodityAvoidanceAngle || "未設定"}`,
     ].join(" / "))
+    .join("\n");
+}
+
+export interface FingerprintFrequency {
+  fingerprint: string;
+  count: number;
+}
+
+/**
+ * 全履歴の ideaFingerprint を集計し、頻出パターン top50 を返す（Section 5: 焼き直し防止）。
+ * col 38 が空（旧データ）の行はスキップする。
+ */
+export function summarizeFingerprintFrequency(pastIdeas: PastIdeaSummary[]): FingerprintFrequency[] {
+  const freq = new Map<string, number>();
+  for (const idea of pastIdeas) {
+    const fp = idea.ideaFingerprint;
+    if (!fp) continue;
+    freq.set(fp, (freq.get(fp) ?? 0) + 1);
+  }
+  return [...freq.entries()]
+    .map(([fingerprint, count]) => ({ fingerprint, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 50);
+}
+
+export function formatFingerprintFrequencyForPrompt(freqs: FingerprintFrequency[]): string {
+  if (freqs.length === 0) return "（フィンガープリント集計なし — 初回実行）";
+  return freqs
+    .map(f => `- ${f.fingerprint}：${f.count}回`)
     .join("\n");
 }
 
